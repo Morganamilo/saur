@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1091
 #
 # Simple aur helper.
 #
@@ -43,14 +44,18 @@ pkg_deps() {
         cd "${AUR_CACHE_DIR}/${pkg}" || continue
         . PKGBUILD 2>/dev/null || continue
 
+        # $depends is sourced from the PKGBUILD file.
         depends=("${depends[@]//?=[0-9]*}")
 
+        # Log deps that aren't installed.
         IFS=$'\n' read -d "" -ra depends \
             <<< "$(pacman -Q "${depends[@]}" 2>&1 >/dev/null)"
 
         depends=("${depends[@]%\'*}")
         depends=("${depends[@]#*\'}")
 
+        # IF the deps aren't in the local repositories, install
+        # them from the aur.
         for dep in "${depends[@]}"; do
             pacman -Ss "$dep" >/dev/null || deps_aur+=("$dep")
         done
