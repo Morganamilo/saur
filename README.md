@@ -16,7 +16,7 @@ The only required dependencies are `curl`, `git`, `bash` and `pacman` which shou
 saur pkg
 saur pkg pkg pkg
 
-# Check for updates (saur with no arguments)
+# Update packages (saur with no arguments)
 saur
 ```
 
