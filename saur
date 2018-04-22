@@ -36,11 +36,12 @@ pkg_check() {
 
 pkg_install() {
     # Install packages.
+    [[ "${FUNCNAME[2]}" == "pkg_deps" ]] && as_dep="--asdeps"
+
     for pkg in "$@"; do
-        cd "${AUR_CACHE_DIR}/${pkg}" && makepkg -sfcCi
+        cd "${AUR_CACHE_DIR}/${pkg}" && makepkg -sfcCi "$as_dep"
     done
 }
-
 
 pkg_deps() {
     # Install any foreign deps.
