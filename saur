@@ -12,9 +12,7 @@ shopt -s nullglob nocasematch
 AUR_CACHE_DIR="${AUR_CACHE_DIR:-${HOME}/.cache/saur}"
 mkdir -p "${AUR_CACHE_DIR}/update"
 
-
 pkg_get() {
-    # Download the PKGBUILD / Files.
     cd "$AUR_CACHE_DIR" || exit 1
 
     for pkg in "$@"; do
@@ -26,9 +24,7 @@ pkg_get() {
     done
 }
 
-
 pkg_check() {
-    # Check PKGBUILD / Files.
     for pkg in "$@"; do
         cd "${AUR_CACHE_DIR}/${pkg}" || continue
 
@@ -39,9 +35,7 @@ pkg_check() {
     done
 }
 
-
 pkg_deps() {
-    # Install any foreign deps.
     local depends
     local deps_aur
 
@@ -59,7 +53,7 @@ pkg_deps() {
         depends=("${depends[@]%\'*}")
         depends=("${depends[@]#*\'}")
 
-        # IF the deps aren't in the local repositories, install
+        # If the deps aren't in the local repositories, install
         # them from the aur.
         for dep in "${depends[@]}"; do
             pacman -Ss "$dep" >/dev/null || deps_aur+=("$dep")
@@ -69,9 +63,7 @@ pkg_deps() {
     done
 }
 
-
 pkg_install() {
-    # Install packages.
     local as_dep
 
     # If the install function was called from 'pkg_deps',
@@ -83,9 +75,7 @@ pkg_install() {
     done
 }
 
-
 pkg_update() {
-    # Update packages.
     local update_pkgs
 
     cd "${AUR_CACHE_DIR}/update" || exit 1
@@ -125,14 +115,11 @@ pkg_update() {
     fi
 }
 
-
 pkg() {
-    # Main.
     pkg_get "$@"
     pkg_check "$@"
     pkg_deps "$@"
     pkg_install "$@"
 }
-
 
 [[ "$1" ]] || pkg_update && pkg "$@"
