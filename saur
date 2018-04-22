@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+#
+# Simple aur helper.
+#
+# Usage: ./aur pkg pkg pkg
+export LC_ALL=C
+export LANG=C
+
+shopt -s nullglob nocasematch
+
+AUR_CACHE_DIR="${AUR_CACHE_DIR:-${HOME}/.cache/aur}"
+
+
+pkg_get() {
+    # Download the PKGBUILD / Files.
+    cd "$AUR_CACHE_DIR" || exit 1
+
+    for pkg in "$@"; do
+        git clone "https://aur.archlinux.org/${pkg}.git" 2>/dev/null
+    done
+}
+
+
+pkg_check() {
+    # Check PKGBUILD / Files.
+    for pkg in "$@"; do
+        cd "${AUR_CACHE_DIR}/${pkg}" || continue
+
+        for file in PKGBUILD *.sh *.desktop *.h *.install; do
+            read -rn 1 -p "View $file for ${pkg}? [y/n] " yn; echo
+            [[ "$yn" =~ y ]] && "${EDITOR:-vi}" "$file"
+        done
+    done
+}
+
+
+pkg_install() {
+    # Install packages.
+    for pkg in "$@"; do
+        cd "${AUR_CACHE_DIR}/${pkg}" && makepkg -sfcCi
+    done
+}
+
+
+pkg_deps() {
+    # Install any foreign deps.
+    for pkg in "$@"; do
+        cd "${AUR_CACHE_DIR}/${pkg}" || continue
+       . PKGBUILD || continue
+
+       depends=("${depends[@]//?=[0-9]*}")
+
+       IFS=$'\n' read -d "" -ra deps \
+                    <<< "$(pacman -Q "${depends[@]}" 2>&1 >/dev/null)"
+
+       deps=("${deps[@]%\'*}")
+       deps=("${deps[@]#*\'}")
+
+       pkg "${deps[@]}"
+    done
+}
+
+
+pkg() {
+    # Main.
+    mkdir -p "$AUR_CACHE_DIR"
+
+    pkg_get "$@"
+    pkg_check "$@"
+    pkg_deps "$@"
+    pkg_install "$@"
+}
+
+
+pkg "$@"
