@@ -35,10 +35,7 @@ pkg_deps() {
     local depends deps_aur
 
     for pkg in "$@"; do
-        # Source the PKGBUILD.
-        . "${AUR_CACHE_DIR}/${pkg}/PKGBUILD" 2>/dev/null || continue
-
-        # $depends is sourced from the PKGBUILD file.
+        source "${AUR_CACHE_DIR}/${pkg}/PKGBUILD" 2>/dev/null || continue
         depends=("${depends[@]//?=[0-9]*}")
 
         # Log deps that aren't installed.
