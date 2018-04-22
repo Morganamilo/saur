@@ -23,13 +23,3 @@ saur
 ## Install
 
 Drop the script anywhere in your path.
-
-
-## TODO
-
-- [x] Add flags.
-    - [x] ~~Install flag `-S`.~~ Added differently.
-    - [x] ~~Update flag `-Syu`.~~ Added differently.
-- [x] Check for PKGBUILD updates.
-- [x] Add Travis for linting/testing.
-    - [ ] Write some tests (*Test installation of various AUR packages*).
