@@ -8,7 +8,7 @@ export LANG=C
 
 shopt -s nullglob nocasematch
 
-AUR_CACHE_DIR="${AUR_CACHE_DIR:-${HOME}/.cache/aur}"
+AUR_CACHE_DIR="${AUR_CACHE_DIR:-${HOME}/.cache/saur}"
 
 
 pkg_get() {
