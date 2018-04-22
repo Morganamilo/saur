@@ -18,7 +18,11 @@ pkg_get() {
     cd "$AUR_CACHE_DIR" || exit 1
 
     for pkg in "$@"; do
-        git clone "https://aur.archlinux.org/${pkg}.git" 2>/dev/null
+        git clone "https://aur.archlinux.org/${pkg}.git" 2>/dev/null || {
+            cd "$pkg" || continue
+            pull="$(git pull)"
+            printf "%s" "${pull/Already up to date.}"
+        }
     done
 }
 
@@ -70,6 +74,8 @@ pkg_install() {
     # Install packages.
     local as_dep
 
+    # If the install function was called from 'pkg_deps',
+    # append the '--asdeps' flag to 'makepkg'.
     [[ "${FUNCNAME[2]}" == "pkg_deps" ]] && as_dep="--asdeps"
 
     for pkg in "$@"; do
