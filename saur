@@ -10,6 +10,7 @@ export LANG=C
 shopt -s nullglob nocasematch
 
 AUR_CACHE_DIR="${AUR_CACHE_DIR:-${HOME}/.cache/saur}"
+mkdir -p "$AUR_CACHE_DIR"
 
 
 pkg_get() {
@@ -79,8 +80,6 @@ pkg_install() {
 
 pkg() {
     # Main.
-    mkdir -p "$AUR_CACHE_DIR"
-
     pkg_get "$@"
     pkg_check "$@"
     pkg_deps "$@"
