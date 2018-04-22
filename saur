@@ -34,6 +34,7 @@ pkg_check() {
 pkg_deps() {
     local deps
 
+    # Get the deps from the PKGBUILDS.
     for pkg in "$@"; do
         source "${AUR_CACHE_DIR}/${pkg}/PKGBUILD" 2>/dev/null || continue
         deps+=("${depends[@]//?=[0-9]*}")
@@ -46,8 +47,10 @@ pkg_deps() {
     deps=("${deps[@]%\'*}")
     deps=("${deps[@]#*\'}")
 
+    # All deps are installed, get out of here.
     [[ -z "${deps[0]}" ]] && return
 
+    # Construct a regex string to send to pacman ("^pkg$|^pkg2$|^pkg3$").
     deps_string=("${deps[@]/%/$}")
     printf -v deps_string "|%s" "${deps_string[@]/#/^}"
 
@@ -55,6 +58,7 @@ pkg_deps() {
     IFS=$'\n' read -d "" -ra local_pkgs \
         <<< "$(pacman -Ssq "${deps_string:1}")"
 
+    # Filter the array and remove local packages.
     for pkg in "${local_pkgs[@]}"; do
         deps=("${deps[@]/$pkg}")
     done
