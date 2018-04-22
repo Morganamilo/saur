@@ -76,7 +76,8 @@ pkg_update() {
     # version numbers. This is much faster than using 'git pull'
     # in existing package repositories.
     curl -fs -L --remote-name-all \
-         -O "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={${urls[*]}}"
+         -O "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={${urls[*]}}" \
+         || { printf "%s\\n" "error: failed to download pkg info."; exit 1; }
 
     file_path="${AUR_CACHE_DIR}/update/?v=5&type=info&arg[]="
 
