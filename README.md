@@ -6,6 +6,8 @@
 
 The goal of this project is to create a dead simple and light on dependencies AUR helper. The main focus will be on installation and updating of packages.
 
+This AUR helper will not be an interface to `pacman` commands but an entirely separate utility. I believe that local repos and the AUR should remain separate as they already are.
+
 The only required dependencies are `curl`, `git`, `bash` and `pacman` which should already be installed on your system.
 
 
