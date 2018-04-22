@@ -35,8 +35,8 @@ pkg_deps() {
     local depends deps_aur
 
     for pkg in "$@"; do
-        cd "${AUR_CACHE_DIR}/${pkg}" || continue
-        . PKGBUILD 2>/dev/null || continue
+        # Source the PKGBUILD.
+        . "${AUR_CACHE_DIR}/${pkg}/PKGBUILD" 2>/dev/null || continue
 
         # $depends is sourced from the PKGBUILD file.
         depends=("${depends[@]//?=[0-9]*}")
@@ -72,17 +72,16 @@ pkg_update() {
     IFS=$'\n' read -d "" -ra pkgs <<< "$(pacman -Qem)"
 
     # Construct list of arguments to send to curl.
-    file_path="${AUR_CACHE_DIR}/update/?v=5&type=info&arg[]="
-    aur_url="https://aur.archlinux.org/rpc/?v=5&type=info&arg[]="
-    for pkg in "${pkgs[@]}"; do
-        urls+=("--url \"${aur_url}${pkg% *}\"" "-z \"${file_path}${pkg% *}\"")
-    done
+    printf -v urls ",%s" "${pkgs[@]/ [0-9]*}"
+    urls="${urls:1}"
 
     # Download all of the pkg data using curl to get latest
     # version numbers. This is much faster than using 'git pull'
     # in existing package repositories.
-    curl -fs -L --remote-name-all -K <(printf "%s\\n" "${urls[@]}") || \
-        { printf "%s\\n" "error: failed to download pkg info."; exit 1; }
+    curl -fs -L --remote-name-all \
+         -O "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={${urls[*]}}"
+
+    file_path="${AUR_CACHE_DIR}/update/?v=5&type=info&arg[]="
 
     for pkg in "${pkgs[@]}"; do
         pkg_name="${pkg% *}"
