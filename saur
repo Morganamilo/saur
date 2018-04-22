@@ -32,26 +32,35 @@ pkg_check() {
 }
 
 pkg_deps() {
-    local deps_aur
+    local deps
 
     for pkg in "$@"; do
         source "${AUR_CACHE_DIR}/${pkg}/PKGBUILD" 2>/dev/null || continue
-        deps=("${depends[@]//?=[0-9]*}")
-
-        # Log deps that aren't installed.
-        IFS=$'\n' read -d "" -ra depends \
-            <<< "$(pacman -Q "${depends[@]}" 2>&1 >/dev/null)"
-
-        deps=("${deps[@]%\'*}")
-        deps=("${deps[@]#*\'}")
-
-        # If the deps aren't in local repositories, install them from the aur.
-        for dep in "${deps[@]}"; do
-            pacman -Ss "$dep" >/dev/null || deps_aur+=("$dep")
-        done
+        deps+=("${depends[@]//?=[0-9]*}")
     done
 
-    [[ "${deps_aur[0]}" ]] && pkg "${deps_aur[@]}"
+    # Log deps that aren't installed.
+    IFS=$'\n' read -d "" -ra deps \
+        <<< "$(pacman -Q "${deps[@]}" 2>&1 >/dev/null)"
+
+    deps=("${deps[@]%\'*}")
+    deps=("${deps[@]#*\'}")
+
+    [[ -z "${deps[0]}" ]] && return
+
+    deps_string=("${deps[@]/%/$}")
+    printf -v deps_string "|%s" "${deps_string[@]/#/^}"
+
+    # If the deps aren't in local repositories, install them from the aur.
+    IFS=$'\n' read -d "" -ra local_pkgs \
+        <<< "$(pacman -Ssq "${deps_string:1}")"
+
+    for pkg in "${local_pkgs[@]}"; do
+        deps=("${deps[@]/$pkg}")
+    done
+    read -ra deps <<< "${deps[@]}"
+
+    (("${#deps[0]}" >= 2)) && pkg "${deps[@]}"
 }
 
 pkg_install() {
