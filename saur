@@ -14,8 +14,7 @@ pkg_get() {
 
     for pkg in "$@"; do
         git clone "https://aur.archlinux.org/${pkg}.git" 2>/dev/null || {
-            cd "$pkg" || continue
-            pull="$(git pull)"
+            pull="$(git -C "$pkg" pull 2>/dev/null)"
             printf "%s" "${pull/Already up to date.}"
         }
     done
@@ -33,8 +32,7 @@ pkg_check() {
 }
 
 pkg_deps() {
-    local depends
-    local deps_aur
+    local depends deps_aur
 
     for pkg in "$@"; do
         cd "${AUR_CACHE_DIR}/${pkg}" || continue
@@ -61,14 +59,9 @@ pkg_deps() {
 }
 
 pkg_install() {
-    local as_dep
-
-    # If the install function was called from 'pkg_deps',
-    # append the '--asdeps' flag to 'makepkg'.
-    [[ "${FUNCNAME[2]}" == "pkg_deps" ]] && as_dep="--asdeps"
-
     for pkg in "$@"; do
-        cd "${AUR_CACHE_DIR}/${pkg}" && makepkg -sfcCi "$as_dep"
+        cd "${AUR_CACHE_DIR}/${pkg}" && \
+            makepkg -sfcCi "${FUNCNAME[2]/pkg_deps/--asdeps}"
     done
 }
 
