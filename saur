@@ -86,11 +86,13 @@ pkg_install() {
 
 pkg_update() {
     # Update packages.
+    local update_pkgs
+
     cd "${AUR_CACHE_DIR}/update" || exit 1
-
     IFS=$'\n' read -d "" -ra pkgs <<< "$(pacman -Qem)"
-    url="https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h="
 
+    # Construct list of urls to send to curl.
+    url="https://aur.archlinux.org/rpc/?v=5&type=info&arg[]="
     for pkg in "${pkgs[@]}"; do
         urls+=("url=\"${url}${pkg% *}\"")
     done
@@ -98,32 +100,28 @@ pkg_update() {
     # Download all of the PKGBUILDs using curl to get latest
     # version numbers. This is much faster than using 'git pull'
     # in existing package repositories.
-    curl -fs -L --remote-name-all -K <(echo "${urls[@]}")
+    curl -fs -L --remote-name-all -K <(printf "%s\\n" "${urls[@]}") || \
+        { printf "%s\\n" "error: failed to download PKGBUILDS."; exit 1; }
 
     for pkg in "${pkgs[@]}"; do
         pkg_name="${pkg% *}"
-        pkg_vers="${pkg#* }"
-        pkg_vers="${pkg_vers#*:}"
-
-        # Don't source the PKGBUILD but parse it as plain text.
-        pkgbuild="$(< "${AUR_CACHE_DIR}/update/PKGBUILD?h=${pkg_name}")"
-
-        # If the file failed to download, skip it.
-        # This is ok since it happens in meta packages and the
-        # real package will still be checked.
-        [[ "$pkgbuild" == *"<!DOCTYPE html>"* ]] && continue
-
-        aur_ver="${pkgbuild#*pkgver=}"
-        aur_ver="${aur_ver/$'\n'*}"
-        aur_rel="${pkgbuild#*pkgrel=}"
-        aur_rel="${aur_rel/$'\n'*}"
-        aur_full_ver="${aur_ver}${aur_rel:+-${aur_rel}}"
+        pkg_ver="${pkg#* }"
+        pkgbuild="$(< "${AUR_CACHE_DIR}/update/?v=5&type=info&arg[]=$pkg_name")"
+        aur_ver="${pkgbuild#*\"Version\":\"}"
+        aur_ver="${aur_ver%%\"*}"
 
         # 'vercmp' is installed with 'pacman' and is used to
         # compare version numbers.
-        (("$(vercmp "$pkg_vers" "$aur_full_ver")" == -1)) && \
-            printf "%s\\n" "${pkg_name}: $pkg_vers --> $aur_full_ver"
+        if (("$(vercmp "$pkg_ver" "$aur_ver")" == -1)); then
+            printf "%s\\n" "${pkg_name}: $pkg_ver --> $aur_ver"
+            update_pkgs+=("$pkg_name")
+        fi
     done
+
+    if [[ "${update_pkgs[0]}" ]]; then
+        read -rn 1 -p $'\n'"Update packages? [y/n] " yn; echo
+        [[ "$yn" =~ y ]] && pkg "${update_pkgs[@]}"
+    fi
 }
 
 
