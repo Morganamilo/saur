@@ -49,9 +49,9 @@ pkg_deps() {
         for dep in "${deps[@]}"; do
             pacman -Ss "$dep" >/dev/null || deps_aur+=("$dep")
         done
-
-        pkg "${deps_aur[@]}"
     done
+
+    [[ "${deps_aur[0]}" ]] && pkg "${deps_aur[@]}"
 }
 
 pkg_install() {
