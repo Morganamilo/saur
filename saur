@@ -34,30 +34,40 @@ pkg_check() {
 }
 
 
+pkg_deps() {
+    # Install any foreign deps.
+    local depends
+    local deps_aur
+
+    for pkg in "$@"; do
+        cd "${AUR_CACHE_DIR}/${pkg}" || continue
+        . PKGBUILD 2>/dev/null || continue
+
+        depends=("${depends[@]//?=[0-9]*}")
+
+        IFS=$'\n' read -d "" -ra depends \
+            <<< "$(pacman -Q "${depends[@]}" 2>&1 >/dev/null)"
+
+        depends=("${depends[@]%\'*}")
+        depends=("${depends[@]#*\'}")
+
+        for dep in "${depends[@]}"; do
+            pacman -Ss "$dep" >/dev/null || deps_aur+=("$dep")
+        done
+
+        pkg "${deps_aur[@]}"
+    done
+}
+
+
 pkg_install() {
     # Install packages.
+    local as_dep
+
     [[ "${FUNCNAME[2]}" == "pkg_deps" ]] && as_dep="--asdeps"
 
     for pkg in "$@"; do
         cd "${AUR_CACHE_DIR}/${pkg}" && makepkg -sfcCi "$as_dep"
-    done
-}
-
-pkg_deps() {
-    # Install any foreign deps.
-    for pkg in "$@"; do
-        cd "${AUR_CACHE_DIR}/${pkg}" || continue
-       . PKGBUILD || continue
-
-       depends=("${depends[@]//?=[0-9]*}")
-
-       IFS=$'\n' read -d "" -ra deps \
-                    <<< "$(pacman -Q "${depends[@]}" 2>&1 >/dev/null)"
-
-       deps=("${deps[@]%\'*}")
-       deps=("${deps[@]#*\'}")
-
-       pkg "${deps[@]}"
     done
 }
 
