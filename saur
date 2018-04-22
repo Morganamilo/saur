@@ -4,11 +4,8 @@
 # Simple aur helper.
 #
 # Usage: ./saur pkg pkg pkg
-export LC_ALL=C
-export LANG=C
-
+export LC_ALL=C LANG=C
 shopt -s nullglob nocasematch
-
 AUR_CACHE_DIR="${AUR_CACHE_DIR:-${HOME}/.cache/saur}"
 mkdir -p "${AUR_CACHE_DIR}/update"
 
@@ -88,15 +85,17 @@ pkg_update() {
         urls+=("--url \"${aur_url}${pkg% *}\"" "-z \"${file_path}${pkg% *}\"")
     done
 
-    # Download all of the PKGBUILDs using curl to get latest
+    # Download all of the pkg data using curl to get latest
     # version numbers. This is much faster than using 'git pull'
     # in existing package repositories.
     curl -fs -L --remote-name-all -K <(printf "%s\\n" "${urls[@]}") || \
-        { printf "%s\\n" "error: failed to download PKGBUILDS."; exit 1; }
+        { printf "%s\\n" "error: failed to download pkg info."; exit 1; }
 
     for pkg in "${pkgs[@]}"; do
         pkg_name="${pkg% *}"
         pkg_ver="${pkg#* }"
+
+        # Extract the version number from the json.
         pkgbuild="$(< "${file_path}${pkg_name}")"
         aur_ver="${pkgbuild#*\"Version\":\"}"
         aur_ver="${aur_ver%%\"*}"
