@@ -10,7 +10,7 @@ export LANG=C
 shopt -s nullglob nocasematch
 
 AUR_CACHE_DIR="${AUR_CACHE_DIR:-${HOME}/.cache/saur}"
-mkdir -p "$AUR_CACHE_DIR"
+mkdir -p "${AUR_CACHE_DIR}/update"
 
 
 pkg_get() {
@@ -84,6 +84,49 @@ pkg_install() {
 }
 
 
+pkg_update() {
+    # Update packages.
+    cd "${AUR_CACHE_DIR}/update" || exit 1
+
+    IFS=$'\n' read -d "" -ra pkgs <<< "$(pacman -Qem)"
+    url="https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h="
+
+    for pkg in "${pkgs[@]}"; do
+        urls+=("url=\"${url}${pkg% *}\"")
+    done
+
+    # Download all of the PKGBUILDs using curl to get latest
+    # version numbers. This is much faster than using 'git pull'
+    # in existing package repositories.
+    curl -fs -L --remote-name-all -K <(echo "${urls[@]}")
+
+    for pkg in "${pkgs[@]}"; do
+        pkg_name="${pkg% *}"
+        pkg_vers="${pkg#* }"
+        pkg_vers="${pkg_vers#*:}"
+
+        # Don't source the PKGBUILD but parse it as plain text.
+        pkgbuild="$(< "${AUR_CACHE_DIR}/update/PKGBUILD?h=${pkg_name}")"
+
+        # If the file failed to download, skip it.
+        # This is ok since it happens in meta packages and the
+        # real package will still be checked.
+        [[ "$pkgbuild" == *"<!DOCTYPE html>"* ]] && continue
+
+        aur_ver="${pkgbuild#*pkgver=}"
+        aur_ver="${aur_ver/$'\n'*}"
+        aur_rel="${pkgbuild#*pkgrel=}"
+        aur_rel="${aur_rel/$'\n'*}"
+        aur_full_ver="${aur_ver}${aur_rel:+-${aur_rel}}"
+
+        # 'vercmp' is installed with 'pacman' and is used to
+        # compare version numbers.
+        (("$(vercmp "$pkg_vers" "$aur_full_ver")" == -1)) && \
+            printf "%s\\n" "${pkg_name}: $pkg_vers --> $aur_full_ver"
+    done
+}
+
+
 pkg() {
     # Main.
     pkg_get "$@"
@@ -93,4 +136,4 @@ pkg() {
 }
 
 
-pkg "$@"
+[[ "$1" ]] || pkg_update && pkg "$@"
