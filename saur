@@ -5,7 +5,7 @@
 #
 # Usage: ./saur pkg pkg pkg
 export LC_ALL=C LANG=C
-shopt -s nullglob nocasematch
+shopt -s nullglob nocasematch extglob
 AUR_CACHE_DIR="${AUR_CACHE_DIR:-${HOME}/.cache/saur}"
 mkdir -p "${AUR_CACHE_DIR}/update"
 
@@ -13,10 +13,12 @@ pkg_get() {
     cd "$AUR_CACHE_DIR" || exit 1
 
     for pkg in "$@"; do
-        git clone "https://aur.archlinux.org/${pkg}.git" 2>/dev/null || {
+        git clone "https://aur.archlinux.org/${pkg}.git" 2>/dev/null
+
+        if [[ -z "${BASH_ARGV[0]}" ]]; then
             pull="$(git -C "$pkg" pull 2>/dev/null)"
             printf "%s" "${pull/Already up to date.}"
-        }
+        fi
     done
 }
 
@@ -32,26 +34,30 @@ pkg_check() {
 }
 
 pkg_deps() {
-    local deps_aur
+    local deps
 
+    # Get the deps from the PKGBUILDS.
     for pkg in "$@"; do
         source "${AUR_CACHE_DIR}/${pkg}/PKGBUILD" 2>/dev/null || continue
-        deps=("${depends[@]//?=[0-9]*}")
-
-        # Log deps that aren't installed.
-        IFS=$'\n' read -d "" -ra depends \
-            <<< "$(pacman -Q "${depends[@]}" 2>&1 >/dev/null)"
-
-        deps=("${deps[@]%\'*}")
-        deps=("${deps[@]#*\'}")
-
-        # If the deps aren't in local repositories, install them from the aur.
-        for dep in "${deps[@]}"; do
-            pacman -Ss "$dep" >/dev/null || deps_aur+=("$dep")
-        done
+        deps+=("${depends[@]//?=[0-9]*}")
     done
 
-    [[ "${deps_aur[0]}" ]] && pkg "${deps_aur[@]}"
+    # Log deps that aren't installed.
+    readarray -t deps < <(pacman -Qq "${deps[@]}" 2>&1 >/dev/null)
+    deps=("${deps[@]%\'*}")
+    deps=("${deps[@]#*\'}")
+
+    # All deps are installed, get out of here.
+    [[ -z "${deps[0]}" ]] && return
+
+    # If the deps aren't in local repositories, install them from the aur.
+    IFS="" deps_regex="${deps[*]/%/$|^}"
+    readarray -t local_pkgs < <(pacman -Ssq "^${deps_regex%|^}")
+
+    # Filter the array and remove local packages.
+    IFS=" " read -ra deps <<< "${deps[@]/*(${local_pkgs[*]/%/|}-list)}"
+
+    (("${#deps[0]}" >= 2)) && pkg "${deps[@]}"
 }
 
 pkg_install() {
@@ -65,16 +71,15 @@ pkg_update() {
     local update_pkgs
 
     cd "${AUR_CACHE_DIR}/update" || exit 1
-    IFS=$'\n' read -d "" -ra pkgs <<< "$(pacman -Qem)"
+    readarray -t pkgs <<< "$(pacman -Qem)"
 
     # Construct list of arguments to send to curl.
     printf -v urls ",%s" "${pkgs[@]/ [0-9]*}"
-    urls="${urls:1}"
 
     # Download all of the pkg data using curl to get latest version numbers.
     # This is much faster than using git pull in existing package repositories.
     curl -fs -L --remote-name-all \
-         -O "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={${urls[*]}}" \
+         -O "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={${urls[*]:1}}"\
          || { printf "%s\\n" "error: failed to download pkg info."; exit 1; }
 
     file_path="${AUR_CACHE_DIR}/update/?v=5&type=info&arg[]="
