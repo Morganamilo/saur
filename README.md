@@ -10,6 +10,8 @@ This AUR helper will not be an interface to `pacman` commands but an entirely se
 
 The only required dependencies are `curl`, `git`, `bash` and `pacman` which should already be installed on your system.
 
+`saur` does not yet support complex AUR packages (`aws-cli-git`, `ros-lunar-desktop`) or selecting packages from a group (`clion`, `libc++`, `python-pyalsaaudio`). These features are being worked on but will only be implemented if they can be done so simply.
+
 
 ## Usage
 
