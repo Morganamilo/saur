@@ -15,6 +15,9 @@ pkg_get() {
     for pkg in "$@"; do
         git clone --depth 1 "https://aur.archlinux.org/${pkg}.git" 2>/dev/null
 
+        [[ -f "${pkg}/PKGBUILD" ]] || \
+            { printf "%s\\n" "error: $pkg not found in AUR."; exit 1; }
+
         if [[ -z "${BASH_ARGV[0]}" ]]; then
             pull="$(git -C "$pkg" pull 2>/dev/null)"
             printf "%s" "${pull/Already up to date.}"
