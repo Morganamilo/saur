@@ -69,7 +69,7 @@ pkg_deps() {
 pkg_install() {
     for pkg in "$@"; do
         cd "${AUR_CACHE_DIR}/${pkg}" && \
-            makepkg -sfcCi "${FUNCNAME[2]/pkg_deps/--asdeps}"
+            makepkg -sfcCir "${FUNCNAME[2]/pkg_deps/--asdeps}"
     done
 }
 
