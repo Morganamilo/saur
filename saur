@@ -47,7 +47,6 @@ pkg_deps() {
         deps+=("${makedepends[@]//+(>=|<=|=|<|>)[0-9]*}"
                "${depends[@]//+(>=|<=|=|<|>)[0-9]*}")
     done
-    echo "${deps[@]}"
 
     # Log deps that aren't installed.
     readarray -t deps < <(pacman -Qq "${deps[@]}" 2>&1 >/dev/null)
@@ -60,7 +59,6 @@ pkg_deps() {
     # If the deps aren't in local repositories, install them from the aur.
     IFS="" deps_regex="${deps[*]/%/$|^}"
     readarray -t local_pkgs < <(pacman -Ssq "^${deps_regex%|^}")
-    echo "${local_pkgs[@]}"
 
     # Filter the array and remove local packages.
     IFS=" " read -ra deps <<< "${deps[@]/*(${local_pkgs[*]/%/|}-list)}"
