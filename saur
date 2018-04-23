@@ -107,7 +107,7 @@ pkg_update() {
     done
 
     if [[ "${aur_pkgs[0]}" ]]; then
-        read -rn 1 -p $'\n'"Update aur packages? [y/n] " yn;
+        read -rn 1 -p $'\n'"Update aur packages? [y/n] " yn; echo
         [[ "$yn" != "y" ]] && unset aur_pkgs
     else
         printf "%s\\n" "All aur packages up to date."
