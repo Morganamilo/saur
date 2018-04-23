@@ -39,7 +39,7 @@ pkg_check() {
 }
 
 pkg_deps() {
-    local deps aur_pkgs
+    local deps aur_pkgs depends makedepends
 
     # Get the deps from the PKGBUILDS.
     for pkg in "$@"; do
