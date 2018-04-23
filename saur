@@ -13,10 +13,12 @@ pkg_get() {
     cd "$AUR_CACHE_DIR" || exit 1
 
     for pkg in "$@"; do
-        git clone "https://aur.archlinux.org/${pkg}.git" 2>/dev/null || {
+        git clone "https://aur.archlinux.org/${pkg}.git" 2>/dev/null
+
+        if [[ -z "${BASH_ARGV[0]}" ]]; then
             pull="$(git -C "$pkg" pull 2>/dev/null)"
             printf "%s" "${pull/Already up to date.}"
-        }
+        fi
     done
 }
 
@@ -41,28 +43,22 @@ pkg_deps() {
     done
 
     # Log deps that aren't installed.
-    IFS=$'\n' read -d "" -ra deps \
-        <<< "$(pacman -Q "${deps[@]}" 2>&1 >/dev/null)"
-
+    readarray -t deps < <(pacman -Qq "${deps[@]}" 2>&1 >/dev/null)
     deps=("${deps[@]%\'*}")
     deps=("${deps[@]#*\'}")
 
     # All deps are installed, get out of here.
     [[ -z "${deps[0]}" ]] && return
 
-    # Construct a regex string to send to pacman ("^pkg$|^pkg2$|^pkg3$").
-    deps_string=("${deps[@]/%/$}")
-    printf -v deps_string "|%s" "${deps_string[@]/#/^}"
-
     # If the deps aren't in local repositories, install them from the aur.
-    IFS=$'\n' read -d "" -ra local_pkgs \
-        <<< "$(pacman -Ssq "${deps_string:1}")"
+    IFS="" deps_regex="${deps[*]/%/$|^}"
+    readarray -t local_pkgs < <(pacman -Ssq "^${deps_regex%|^}")
 
     # Filter the array and remove local packages.
     for pkg in "${local_pkgs[@]}"; do
         deps=("${deps[@]/$pkg}")
     done
-    read -ra deps <<< "${deps[@]}"
+    IFS=" " read -ra deps <<< "${deps[@]}"
 
     (("${#deps[0]}" >= 2)) && pkg "${deps[@]}"
 }
@@ -78,16 +74,15 @@ pkg_update() {
     local update_pkgs
 
     cd "${AUR_CACHE_DIR}/update" || exit 1
-    IFS=$'\n' read -d "" -ra pkgs <<< "$(pacman -Qem)"
+    readarray -t pkgs <<< "$(pacman -Qem)"
 
     # Construct list of arguments to send to curl.
     printf -v urls ",%s" "${pkgs[@]/ [0-9]*}"
-    urls="${urls:1}"
 
     # Download all of the pkg data using curl to get latest version numbers.
     # This is much faster than using git pull in existing package repositories.
     curl -fs -L --remote-name-all \
-         -O "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={${urls[*]}}" \
+         -O "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={${urls[*]:1}}"\
          || { printf "%s\\n" "error: failed to download pkg info."; exit 1; }
 
     file_path="${AUR_CACHE_DIR}/update/?v=5&type=info&arg[]="
