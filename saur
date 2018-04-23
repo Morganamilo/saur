@@ -19,10 +19,10 @@ pkg_get() {
         [[ -f "${pkg}/PKGBUILD" ]] || \
             { printf "%s\\n" "error: $pkg not found in AUR."; exit 1; }
 
-        if [[ -z "${BASH_ARGV[0]}" ]]; then
+        [[ -z "${BASH_ARGV[0]}" ]] && {
             pull="$(git -C "$pkg" pull 2>/dev/null)"
             printf "%s" "${pull/Already up to date.}"
-        fi
+        }
     done
 }
 
@@ -33,7 +33,7 @@ pkg_check() {
         # TODO: This probably misses some files.
         for file in PKGBUILD *.sh *.desktop *.h *.install; do
             read -rn 1 -p "View $file for ${pkg}? [y/n] " yn; echo
-            [[ "$yn" =~ y ]] && "${EDITOR:-vi}" "$file"
+            [[ "$yn" == y ]] && "${EDITOR:-vi}" "$file"
         done
     done
 }
@@ -74,8 +74,6 @@ pkg_install() {
 }
 
 pkg_update() {
-    local update_pkgs
-
     cd "${AUR_CACHE_DIR}" || exit 1
     readarray -t pkgs <<< "$(pacman -Qem)"
 
@@ -103,14 +101,24 @@ pkg_update() {
         # vercmp is a program that comes with pacman.
         if (("$(vercmp "$pkg_ver" "$aur_ver")" == -1)); then
             printf "%s\\n" "${pkg_name}: $pkg_ver --> $aur_ver"
-            update_pkgs+=("$pkg_name")
+            aur_pkgs+=("$pkg_name")
+
+        elif [[ "$pkg_name" =~ (-cvs$|-svn$|-hg$|-darcs$|-bzr$|-git$) ]]; then
+            dev_pkgs+=("$pkg_name")
         fi
     done
 
-    if [[ "${update_pkgs[0]}" ]]; then
-        read -rn 1 -p $'\n'"Update packages? [y/n] " yn; echo
-        [[ "$yn" =~ y ]] && pkg "${update_pkgs[@]}"
-    fi
+    [[ "${aur_pkgs[0]}" ]] && {
+        read -rn 1 -p "Update packages? [y/n] " yn; echo
+        [[ "$yn" != "y" ]] && unset aur_pkgs
+    }
+
+    [[ "${dev_pkgs[0]}" ]] && {
+        read -rn 1 -p "Update dev packages? (-git,..) [y/n] " yn; echo
+        [[ "$yn" != "y" ]] && unset dev_pkgs
+    }
+
+    pkg "${aur_pkgs[@]}" "${dev_pkgs[@]}"
 }
 
 pkg() {
