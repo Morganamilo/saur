@@ -5,7 +5,7 @@
 #
 # Usage: ./saur pkg pkg pkg
 export LC_ALL=C LANG=C
-shopt -s nullglob nocasematch extglob
+shopt -s extglob nocasematch nullglob
 AUR_CACHE_DIR="${AUR_CACHE_DIR:-${HOME}/.cache/saur}"
 mkdir -p "${AUR_CACHE_DIR}/update"
 
@@ -13,7 +13,7 @@ pkg_get() {
     cd "$AUR_CACHE_DIR" || exit 1
 
     for pkg in "$@"; do
-        git clone "https://aur.archlinux.org/${pkg}.git" 2>/dev/null
+        git clone --depth 1 "https://aur.archlinux.org/${pkg}.git" 2>/dev/null
 
         if [[ -z "${BASH_ARGV[0]}" ]]; then
             pull="$(git -C "$pkg" pull 2>/dev/null)"
