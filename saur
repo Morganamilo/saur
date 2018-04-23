@@ -5,7 +5,7 @@
 #
 # Usage: ./saur pkg pkg pkg
 export LC_ALL=C LANG=C
-shopt -s nullglob nocasematch
+shopt -s nullglob nocasematch extglob
 AUR_CACHE_DIR="${AUR_CACHE_DIR:-${HOME}/.cache/saur}"
 mkdir -p "${AUR_CACHE_DIR}/update"
 
@@ -55,10 +55,7 @@ pkg_deps() {
     readarray -t local_pkgs < <(pacman -Ssq "^${deps_regex%|^}")
 
     # Filter the array and remove local packages.
-    for pkg in "${local_pkgs[@]}"; do
-        deps=("${deps[@]/$pkg}")
-    done
-    IFS=" " read -ra deps <<< "${deps[@]}"
+    IFS=" " read -ra deps <<< "${deps[@]/*(${local_pkgs[*]/%/|}-list)}"
 
     (("${#deps[0]}" >= 2)) && pkg "${deps[@]}"
 }
