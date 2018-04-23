@@ -106,15 +106,17 @@ pkg_update() {
         fi
     done
 
-    [[ "${aur_pkgs[0]}" ]] && {
+    if [[ "${aur_pkgs[0]}" ]]; then
         read -rn 1 -p $'\n'"Update aur packages? [y/n] " yn;
         [[ "$yn" != "y" ]] && unset aur_pkgs
-    }
+    else
+        printf "%s\\n" "All aur packages up to date."
+    fi
 
-    [[ "${dev_pkgs[0]}" ]] && {
-        read -rn 1 -p $'\n'"Update dev packages? (-git,..) [y/n] " yn; echo
+    if [[ "${dev_pkgs[0]}" ]]; then
+        read -rn 1 -p "Update dev packages? (-git,..) [y/n] " yn; echo
         [[ "$yn" != "y" ]] && unset dev_pkgs
-    }
+    fi
 
     pkg "${aur_pkgs[@]}" "${dev_pkgs[@]}"
 }
