@@ -13,7 +13,8 @@ pkg_get() {
     cd "$AUR_CACHE_DIR" || exit 1
 
     for pkg in "$@"; do
-        git clone --depth 1 "https://aur.archlinux.org/${pkg}.git" 2>/dev/null
+        git clone --depth 1 --branch master --single-branch \
+            "https://aur.archlinux.org/${pkg}.git" 2>/dev/null
 
         [[ -f "${pkg}/PKGBUILD" ]] || \
             { printf "%s\\n" "error: $pkg not found in AUR."; exit 1; }
