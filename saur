@@ -38,7 +38,7 @@ pkg_check() {
 }
 
 pkg_deps() {
-    local deps
+    local deps aur_pkgs
 
     # Get the deps from the PKGBUILDS.
     for pkg in "$@"; do
@@ -56,13 +56,11 @@ pkg_deps() {
     [[ -z "${deps[0]}" ]] && return
 
     # If the deps aren't in local repositories, install them from the aur.
-    IFS="" deps_regex="${deps[*]/%/$|^}"
-    readarray -t local_pkgs < <(pacman -Ssq "^${deps_regex%|^}")
+    for dep in "${deps[@]}"; do
+        pacman -Ssq "$dep" >/dev/null || aur_pkgs+=("$dep")
+    done
 
-    # Filter the array and remove local packages.
-    IFS=" " read -ra deps <<< "${deps[@]/*(${local_pkgs[*]/%/|}-list)}"
-
-    (("${#deps[0]}" >= 2)) && pkg "${deps[@]}"
+    (("${#deps[0]}" >= 2)) && pkg "${aur_pkgs[@]}"
 }
 
 pkg_install() {
