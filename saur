@@ -43,8 +43,10 @@ pkg_deps() {
     # Get the deps from the PKGBUILDS.
     for pkg in "$@"; do
         source "${AUR_CACHE_DIR}/${pkg}/PKGBUILD" 2>/dev/null || continue
-        deps+=("${depends[@]//?=[0-9]*}")
+        deps+=("${depends[@]//+(>=|<=|=|<|>)[0-9]*}")
     done
+    echo "${deps[@]}"
+    exit
 
     # Log deps that aren't installed.
     readarray -t deps < <(pacman -Qq "${deps[@]}" 2>&1 >/dev/null)
