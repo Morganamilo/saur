@@ -43,7 +43,8 @@ pkg_deps() {
     # Get the deps from the PKGBUILDS.
     for pkg in "$@"; do
         source "${AUR_CACHE_DIR}/${pkg}/PKGBUILD" 2>/dev/null || continue
-        deps+=("${depends[@]//+(>=|<=|=|<|>)[0-9]*}")
+        deps+=("${makedepends[@]//+(>=|<=|=|<|>)[0-9]*}"
+               "${depends[@]//+(>=|<=|=|<|>)[0-9]*}")
     done
 
     # Log deps that aren't installed.
