@@ -24,4 +24,8 @@ saur
 
 ## Install
 
-Drop the script anywhere in your path.
+```sh
+git clone https://aur.archlinux.org/saur-git.git
+cd saur-git
+makepkg -sfcCi
+```
