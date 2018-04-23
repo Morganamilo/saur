@@ -109,7 +109,7 @@ pkg_update() {
     done
 
     [[ "${aur_pkgs[0]}" ]] && {
-        read -rn 1 -p "Update packages? [y/n] " yn; echo
+        read -rn 1 -p "Update aur packages? [y/n] " yn; echo
         [[ "$yn" != "y" ]] && unset aur_pkgs
     }
 
