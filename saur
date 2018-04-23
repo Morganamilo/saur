@@ -7,7 +7,7 @@
 export LC_ALL=C LANG=C
 shopt -s extglob nocasematch nullglob
 AUR_CACHE_DIR="${AUR_CACHE_DIR:-${HOME}/.cache/saur}"
-mkdir -p "${AUR_CACHE_DIR}/update"
+mkdir -p "${AUR_CACHE_DIR}"
 
 pkg_get() {
     cd "$AUR_CACHE_DIR" || exit 1
@@ -74,25 +74,28 @@ pkg_install() {
 pkg_update() {
     local update_pkgs
 
-    cd "${AUR_CACHE_DIR}/update" || exit 1
+    cd "${AUR_CACHE_DIR}" || exit 1
     readarray -t pkgs <<< "$(pacman -Qem)"
 
     # Construct list of arguments to send to curl.
-    printf -v urls ",%s" "${pkgs[@]/ [0-9]*}"
+    printf -v urls "&arg[]=%s" "${pkgs[@]/ [0-9]*}"
 
     # Download all of the pkg data using curl to get latest version numbers.
     # This is much faster than using git pull in existing package repositories.
-    curl -fs --fail-early --remote-name-all -o "#1" \
-         -O "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]={${urls[*]:1}}"\
+    curl -fs --fail-early -o "aur-versions" \
+         -O "https://aur.archlinux.org/rpc/?v=5&type=info&${urls[*]:1}"\
         || { printf "%s\\n" "error: failed to download pkg info."; exit 1; }
 
-    for pkg in "${pkgs[@]}"; do
-        pkg_name="${pkg% *}"
-        pkg_ver="${pkg#* }"
+    # Split the large json into each individual package.
+    readarray -d "},{" -t json < "aur-versions"
+
+    for i in "${!pkgs[@]}"; do
+        pkg_name="${pkgs[$i]% *}"
+        pkg_ver="${pkgs[$i]#* }"
 
         # Extract the version number from the json.
-        pkgbuild="$(< "${pkg_name}")"
-        aur_ver="${pkgbuild#*\"Version\":\"}"
+        data="${json[$i]}"
+        aur_ver="${data#*\"Version\":\"}"
         aur_ver="${aur_ver%%\"*}"
 
         # vercmp is a program that comes with pacman.
